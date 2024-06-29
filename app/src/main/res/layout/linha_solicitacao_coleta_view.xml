@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="100dp"
+    android:background="@drawable/background_border_error"
+    android:padding="15dp">
+
+
+    <TextView
+        android:id="@+id/tvEnderecoColeta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Endereço coleta"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvDataHoraColeta"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/tvEnderecoColeta"
+        android:layout_marginTop="14dp"
+        android:text="Data/hora coleta"
+        android:textSize="16sp" />
+</RelativeLayout>
