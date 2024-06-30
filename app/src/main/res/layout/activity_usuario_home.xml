@@ -10,18 +10,18 @@
     <CalendarView
         android:id="@+id/calendarView"
         android:layout_width="409dp"
-        android:layout_height="300dp"
-        android:layout_marginTop="56dp"
+        android:layout_height="332dp"
+        app:layout_constraintBottom_toTopOf="@+id/rvColetasUsuario"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/textView" />
 
     <TextView
         android:id="@+id/textView"
         android:layout_width="409dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="1dp"
         android:text="Coletas solicitadas"
         android:textAlignment="center"
         android:textSize="24sp"
@@ -34,7 +34,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvColetasUsuario"
         android:layout_width="409dp"
-        android:layout_height="373dp"
+        android:layout_height="360dp"
         android:layout_marginTop="360dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

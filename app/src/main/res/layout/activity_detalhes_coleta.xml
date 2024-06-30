@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".DetalhesColetaActivity">
+
+    <TextView
+        android:id="@+id/tvDetalhesColetaDataHora"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:text="Coleta em 01/07/2024 às 19:30"
+        android:textAlignment="center"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaRelogioOn"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="38dp"
+        android:layout_marginTop="62dp"
+        android:contentDescription="relógio sem preenchimento"
+        android:src="@drawable/clock"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaRelogioOff"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="38dp"
+        android:layout_marginTop="62dp"
+        android:contentDescription="relógio sem preenchimento"
+        android:src="@drawable/clock_outline"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaCaminhaoOff"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="62dp"
+        android:contentDescription="caminhão sem preenchimento"
+        android:src="@drawable/car_outline"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaCaminhaoOn"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="62dp"
+        android:contentDescription="caminhão sem preenchimento"
+        android:src="@drawable/car"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaCheckOff"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="62dp"
+        android:layout_marginEnd="38dp"
+        android:contentDescription="caminhão sem preenchimento"
+        android:src="@drawable/checkmark_circle_2_outline"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaCheckOn"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginTop="62dp"
+        android:layout_marginEnd="38dp"
+        android:contentDescription="caminhão sem preenchimento"
+        android:src="@drawable/checkmark_circle_2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ProgressBar
+        android:id="@+id/pbDetalhesColetaStatus"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="320dp"
+        android:layout_height="14dp"
+        android:layout_marginTop="128dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvDetalhesColetaStatus"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="148dp"
+        android:text="Status: coleta em andamento"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaFotoPrestador"
+        android:layout_width="128dp"
+        android:layout_height="128dp"
+        android:layout_marginBottom="4dp"
+        android:contentDescription="Foto prestador"
+        android:src="@drawable/person"
+        app:layout_constraintBottom_toTopOf="@+id/tvDetalhesColetaNomePrestador"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/tvDetalhesColetaNomePrestador"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="312dp"
+        android:text="DEJAIR SOARES"
+        android:textAlignment="center"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaPin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="Pin endereço"
+        android:src="@drawable/pin"
+        app:layout_constraintBottom_toTopOf="@+id/tvDetalhesColetaEndereco"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <TextView
+        android:id="@+id/tvDetalhesColetaEndereco"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="384dp"
+        android:text="Rua Vigário José Inácio, 230/101 bloco B - Centro, Porto Alegre / RS - CEP 91000000"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvDetalhesColetaAparelho"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:text="Geladeira brastemp 412L frost free"
+        android:textAlignment="center"
+        android:textSize="16sp"
+        android:textStyle="italic"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ivDetalhesColetaTv" />
+
+    <ImageView
+        android:id="@+id/ivDetalhesColetaTv"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:contentDescription="TV"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tvDetalhesColetaEndereco"
+        app:srcCompat="@drawable/television" />
+
+    <Button
+        android:id="@+id/btnDetalhesColetaCancelar"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="137dp"
+        android:backgroundTint="@color/design_default_color_error"
+        android:text="Cancelar coleta"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/btnDetalhesColetaAvaliar"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="72dp"
+        android:enabled="false"
+        android:text="Avaliar coleta"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <Button
+        android:id="@+id/btnDetalhesColetaVoltar"
+        android:layout_width="409dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="Voltar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>
