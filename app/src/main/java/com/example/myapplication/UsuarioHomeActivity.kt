@@ -2,7 +2,10 @@ package com.example.myapplication
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.CalendarView
+import android.util.Log
+import android.view.View
+import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -10,11 +13,27 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.Filter
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QueryDocumentSnapshot
+import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.toObject
 import java.time.ZonedDateTime
 
 class UsuarioHomeActivity : AppCompatActivity() {
+    private var isUsuarioPrestador: Boolean = false
+    private var coletas: ArrayList<Coleta> = arrayListOf()
     private lateinit var recyclerView: RecyclerView
-    private lateinit var coletas: ArrayList<Coleta>
+    private lateinit var auth: FirebaseAuth
+
+    companion object {
+        internal val CADASTRAR_COLETA = 123
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,59 +45,30 @@ class UsuarioHomeActivity : AppCompatActivity() {
             insets
         }
 
-        createMockColetas()
-        sortColetas()
+        auth = Firebase.auth
+        isUsuarioPrestador = intent.getBooleanExtra("isUsuarioPrestador", false)
+
+        findViewById<ProgressBar>(R.id.pbUsuarioHome).visibility = View.INVISIBLE
+
         setupRecyclerViewColetas()
+        refreshColetas()
+        Log.d("UsuarioHomeActivity::onCreate()", "Consulta retornou ${coletas.size} coletas")
+        //refreshColetas()
+
+        findViewById<FloatingActionButton>(R.id.fabNovaColeta).setOnClickListener {
+            val intent = Intent(this, NovaColetaActivity::class.java)
+            startActivityForResult(intent, CADASTRAR_COLETA)
+        }
     }
 
-    private fun createMockColetas() {
-        coletas = arrayListOf(
-            Coleta(
-                "1", "2", "", "",
-                "Rua dos Bobos, 0 - POA/RS",
-                ZonedDateTime.parse("2021-11-11T11:11:11.111-03:00"),
-                "Geladeira", 3
-            ),
-            Coleta(
-                "2", "2", "3", "Dejair Soares",
-                "Rua do Limoeiro, 111 - Alvorada/RS",
-                ZonedDateTime.parse("2024-02-03T07:45:13.768-03:00"),
-                "Microondas", 1
-            ),
-            Coleta("3", "2", "", "",
-                "Praça do Avião, S/N - Canoas/RS",
-                ZonedDateTime.parse("2012-12-21T23:58:59.123-02:00"),
-                "Avião", 0
-            ),
-            Coleta(
-                "4", "2", "4", "Katia Pereira",
-                "Avenida Principal, 123/456 - POA/RS",
-                ZonedDateTime.parse("2024-06-29T13:30:00.000-03:00"),
-                "Lava loucas", 2
-            ),
-            Coleta(
-                "4", "2", "4", "Katia Pereira",
-                "Avenida Principal, 123/222 - POA/RS",
-                ZonedDateTime.parse("2024-06-29T15:30:00.000-03:00"),
-                "Freezer horizontal GIGANTE de duas portas ENORME", 4, 5
-            ),
-            Coleta(
-                "5", "2", "", "",
-                "Avenida Principal, 123/321 - POA/RS",
-                ZonedDateTime.parse("2024-06-29T14:00:00.000-03:00"), "Roupeiro",
-                0
-            ),
-            Coleta(
-                "6", "2", "3", "Dejair Soares",
-                "Avenida Principal, 123/456 - POA/RS",
-                ZonedDateTime.parse("2024-06-30T09:30:00.000-03:00"), "Duas TV",
-                3
-            )
-        )
-    }
-
-    private fun sortColetas() {
-        coletas = ((coletas.sortedWith(compareBy { it.dataHora })).toCollection(ArrayList()))
+    @Deprecated("This method has been deprecated in favor of using the Activity Result API\n      which brings increased type safety via an {@link ActivityResultContract} and the prebuilt\n      contracts for common intents available in\n      {@link androidx.activity.result.contract.ActivityResultContracts}, provides hooks for\n      testing, and allow receiving results in separate, testable classes independent from your\n      activity. Use\n      {@link #registerForActivityResult(ActivityResultContract, ActivityResultCallback)}\n      with the appropriate {@link ActivityResultContract} and handling the result in the\n      {@link ActivityResultCallback#onActivityResult(Object) callback}.")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        when (requestCode) {
+            CADASTRAR_COLETA ->
+                if (resultCode == RESULT_OK)
+                    refreshColetas()
+        }
     }
 
     private fun setupRecyclerViewColetas() {
@@ -109,5 +99,84 @@ class UsuarioHomeActivity : AppCompatActivity() {
                 else -> null
             }
         }
+    }
+
+    private fun refreshColetas() {
+        val pb = findViewById<ProgressBar>(R.id.pbUsuarioHome)
+        pb.visibility = View.VISIBLE
+        //pb.setProgress(1, true)
+        try {
+            val db = Firebase.firestore
+            coletas.clear()
+            if (isUsuarioPrestador) {
+                fetchColetasPrestador(db)
+            }
+            else {
+                fetchColetasUsuario(db)
+            }
+        }
+        catch (e: Exception) {
+            Log.e("UsuarioHomeActivity::refreshColetas()", "Falhou ao atualizar coletas", e)
+            Toast.makeText(this, "Erro ao atualizar lista de coletas: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+        finally {
+            pb.visibility = View.INVISIBLE
+        }
+    }
+
+    private fun fetchColetasUsuario(db: FirebaseFirestore) {
+        db.collection("coletas")
+            .whereEqualTo("usuarioId", auth.currentUser?.uid)
+            .get()
+            .addOnSuccessListener { result ->
+                for (doc in result) {
+                    val coleta = querydocumentToColeta(doc!!)
+                    coletas.add(coleta)
+                }
+                Log.d("UsuarioHomeActivity::fetchColetasUsuario()", "Buscou ${coletas.size} coletas")
+                recyclerView.adapter?.notifyDataSetChanged()
+            }
+            .addOnFailureListener { e ->
+                Log.e("UsuarioHomeActivity::fetchColetasUsuario()", "Falhou ao buscar coletas", e)
+                Toast.makeText(this, "Erro ao buscar coletas do usuário: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun fetchColetasPrestador(db: FirebaseFirestore) {
+        db.collection("coletas")
+            .where(
+                // Busca solicitações de coleta já atribuídas a si, e as sem prestador (disponíveis)
+                Filter.or(
+                    Filter.equalTo("prestadorId", auth.currentUser?.uid),
+                    Filter.equalTo("prestadorId", null)
+                )
+            )
+            .get()
+            .addOnSuccessListener { result ->
+                for (doc in result) {
+                    val coleta = querydocumentToColeta(doc!!)
+                    coletas.add(coleta)
+                }
+                Log.d("UsuarioHomeActivity::fetchColetasPrestador()", "Buscou ${coletas.size} coletas")
+                recyclerView.adapter?.notifyDataSetChanged()
+            }
+            .addOnFailureListener { e ->
+                Log.e("UsuarioHomeActivity::fetchColetasPrestador()", "Falhou ao buscar coletas", e)
+                Toast.makeText(this, "Erro ao buscar coletas do prestador: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun querydocumentToColeta(doc: QueryDocumentSnapshot): Coleta {
+        return Coleta(
+            doc["id"].toString(),
+            doc["usuarioId"].toString(),
+            doc["prestadorId"].toString(),
+            doc["prestadorNome"].toString(),
+            doc["endereco"].toString(),
+            ZonedDateTime.parse(doc["dataHora"].toString()),
+            doc["aparelhoTipo"].toString(),
+            doc["status"].toString().toInt(),
+            doc["avaliacao"].toString().toInt()
+        )
     }
 }

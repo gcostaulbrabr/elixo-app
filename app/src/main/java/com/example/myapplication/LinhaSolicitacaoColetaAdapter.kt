@@ -7,8 +7,8 @@ import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import java.time.format.DateTimeFormatter
-import java.util.ArrayList
 import java.util.Locale
+import kotlin.collections.ArrayList
 
 class LinhaSolicitacaoColetaAdapter(private val coletas: ArrayList<Coleta>): RecyclerView.Adapter<LinhaSolicitacaoColetaAdapter.ViewHolder>() {
     var onItemClick: ((Coleta) -> Unit)? = null

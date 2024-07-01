@@ -13,9 +13,12 @@
         android:theme="@style/Theme.MyApplication"
         tools:targetApi="31">
         <activity
-            android:name=".DetalhesColetaActivity"
-            android:parentActivityName=".UsuarioHomeActivity"
+            android:name=".NovaColetaActivity"
             android:exported="false" />
+        <activity
+            android:name=".DetalhesColetaActivity"
+            android:exported="false"
+            android:parentActivityName=".UsuarioHomeActivity" />
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -25,8 +28,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".RegisterActivity" />
-        <activity android:name=".UsuarioHomeActivity" />
+        <activity
+            android:name=".RegisterActivity"
+            android:parentActivityName=".MainActivity" />
+        <activity
+            android:name=".UsuarioHomeActivity"
+            android:parentActivityName=".MainActivity" />
     </application>
 
 </manifest>
