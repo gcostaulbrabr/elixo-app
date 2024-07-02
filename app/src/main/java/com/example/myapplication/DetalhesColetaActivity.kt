@@ -3,9 +3,11 @@ package com.example.myapplication
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.RatingBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +21,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.firestore
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 class DetalhesColetaActivity : AppCompatActivity() {
     private var coleta: Coleta? = null
@@ -50,14 +53,23 @@ class DetalhesColetaActivity : AppCompatActivity() {
             atualizarColeta(ColetaSituacao.CANCELADA)
         }
 
-        findViewById<Button>(R.id.btnDetalhesColetaAvaliar).setOnClickListener {
+        findViewById<Button>(R.id.btnDetalhesColetaAtualizarSituacao).setOnClickListener {
             if (!isPrestador) {
-                // TODO: modal avaliacao
-                var avaliacao = 5
+                val rbAvaliacao = findViewById<RatingBar>(R.id.rbDetalhesColetaAvaliacao)
+                if (rbAvaliacao.rating < 1 || rbAvaliacao.rating > 5) {
+                    Toast.makeText(this, "Informe uma avaliação entre 1 e 5 estrelas", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+                val avaliacao = rbAvaliacao.rating.roundToInt()
                 atualizarColeta(ColetaSituacao.AVALIADA, avaliacao)
             }
             else {
-                atualizarColeta(ColetaSituacao.ACEITA)
+                val situacao: ColetaSituacao = if (coleta!!.status == ColetaSituacao.ACEITA.ordinal)
+                    ColetaSituacao.COLETADA
+                else
+                    ColetaSituacao.ACEITA
+
+                atualizarColeta(situacao)
             }
         }
 
@@ -80,18 +92,19 @@ class DetalhesColetaActivity : AppCompatActivity() {
         val tvNomePrestador = findViewById<TextView>(R.id.tvDetalhesColetaNomePrestador)
         val tvEndereco = findViewById<TextView>(R.id.tvDetalhesColetaEndereco)
         val tvAparelho = findViewById<TextView>(R.id.tvDetalhesColetaAparelho)
+        val rbAvaliacao = findViewById<RatingBar>(R.id.rbDetalhesColetaAvaliacao)
         val btnCancelar = findViewById<Button>(R.id.btnDetalhesColetaCancelar)
-        val btnAvaliar = findViewById<Button>(R.id.btnDetalhesColetaAvaliar)
+        val btnAtualizarSituacao = findViewById<Button>(R.id.btnDetalhesColetaAtualizarSituacao)
 
         tvDataHora.text = DateTimeFormatter.ofPattern("'Coleta em' dd/MM/yyyy 'às' HH:mm", Locale.forLanguageTag("pt-BR")).format(c.dataHora)
         tvNomePrestador.text = c.prestadorNome
         tvEndereco.text = c.endereco
         tvAparelho.text = c.aparelhoTipo
-
-        // Para o prestador, botão Avaliar será usado para o aceite da solicitação de coleta
-        btnAvaliar.text = if (isPrestador) "Aceitar" else "Avaliar"
+        rbAvaliacao.rating = c.avaliacao.toFloat()
 
         // Atualiza imagens e botões
+        // Inicializa com o texto mais comum para cada usuário, e depois muda quando precisar
+        btnAtualizarSituacao.text = if (isPrestador) "Finalizar coleta" else "Avaliar coleta"
         // Esconde e desabilita tudo; mostra e habilita só quando precisar, baseado no status
         ivRelogioOff.visibility = ImageView.INVISIBLE
         ivRelogioOn.visibility = ImageView.INVISIBLE
@@ -101,8 +114,11 @@ class DetalhesColetaActivity : AppCompatActivity() {
         ivCheckOn.visibility = ImageView.INVISIBLE
         ivFotoPrestador.visibility = ImageView.INVISIBLE
         tvNomePrestador.visibility = TextView.INVISIBLE
+        rbAvaliacao.visibility = View.INVISIBLE
+        rbAvaliacao.isEnabled = false
         btnCancelar.isEnabled = false
-        btnAvaliar.isEnabled = false
+        btnAtualizarSituacao.isEnabled = false
+
         when (c.status) {
             ColetaSituacao.SOLICITADA.ordinal -> {
                 // Status 0:
@@ -115,7 +131,10 @@ class DetalhesColetaActivity : AppCompatActivity() {
                 // Prestador não pode cancelar coleta que não aceitou ainda
                 btnCancelar.isEnabled = !isPrestador
                 // Para o prestador, botão Avaliar será usado para o aceite da solicitação de coleta
-                btnAvaliar.isEnabled = isPrestador
+                btnAtualizarSituacao.isEnabled = isPrestador
+                if (isPrestador) {
+                    btnAtualizarSituacao.text = "Aceitar solicitação de coleta"
+                }
             }
             ColetaSituacao.ACEITA.ordinal -> {
                 ivRelogioOn.visibility = ImageView.VISIBLE
@@ -126,8 +145,9 @@ class DetalhesColetaActivity : AppCompatActivity() {
                 ivFotoPrestador.visibility = ImageView.VISIBLE
                 tvNomePrestador.visibility = TextView.VISIBLE
 
-                // Depois de aceita a coleta, somente o prestador pode cancelar
+                // Depois de aceita a coleta, somente o prestador pode cancelar ou finalizar
                 btnCancelar.isEnabled = isPrestador
+                btnAtualizarSituacao.isEnabled = isPrestador
             }
             ColetaSituacao.COLETADA.ordinal -> {
                 ivRelogioOn.visibility = ImageView.VISIBLE
@@ -138,17 +158,23 @@ class DetalhesColetaActivity : AppCompatActivity() {
                 ivFotoPrestador.visibility = ImageView.VISIBLE
                 tvNomePrestador.visibility = TextView.VISIBLE
 
-                btnAvaliar.isEnabled = !isPrestador
+                btnAtualizarSituacao.isEnabled = !isPrestador
+                if (!isPrestador) {
+                    rbAvaliacao.visibility = View.VISIBLE
+                    rbAvaliacao.isEnabled = true
+                }
             }
             ColetaSituacao.AVALIADA.ordinal -> {
                 ivRelogioOn.visibility = ImageView.VISIBLE
                 ivCaminhaoOn.visibility = ImageView.VISIBLE
                 ivCheckOn.visibility = ImageView.VISIBLE
                 pbStatus.progress = 100
-                val avaliacao = if (!isPrestador) ", nota ${c.avaliacao}/5" else ""
-                tvStatus.text = "Status: coleta concluída$avaliacao"
+                tvStatus.text = "Status: coleta encerrada e avaliada"
                 ivFotoPrestador.visibility = ImageView.VISIBLE
                 tvNomePrestador.visibility = TextView.VISIBLE
+                if (!isPrestador) {
+                    rbAvaliacao.visibility = View.VISIBLE
+                }
             }
             ColetaSituacao.CANCELADA.ordinal -> {
                 ivRelogioOff.visibility = ImageView.VISIBLE
@@ -166,8 +192,8 @@ class DetalhesColetaActivity : AppCompatActivity() {
             }
         }
         // deixa os botões transparentes, suavizando a cor, caso tenham sido desabilitados
-        if (!btnAvaliar.isEnabled) {
-            btnAvaliar.alpha = 0.5f
+        if (!btnAtualizarSituacao.isEnabled) {
+            btnAtualizarSituacao.alpha = 0.5f
         }
         if (!btnCancelar.isEnabled) {
             btnCancelar.alpha = 0.5f

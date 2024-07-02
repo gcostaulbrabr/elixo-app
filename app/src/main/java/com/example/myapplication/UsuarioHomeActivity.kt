@@ -103,19 +103,19 @@ class UsuarioHomeActivity : AppCompatActivity() {
             startActivityForResult(intent, ALTERAR_COLETA)
         }
         adapter.onBindItem = { rlItem, coleta ->
-            // status:
-            // 0=aguardando prestador
-            // 1=prestador aceitou, aguardando coleta
-            // 2=coleta concluída, aguardando avaliação
-            // 3=coleta cancelada
-            // 4=coleta concluída e avaliada
             rlItem.background = when (coleta.status) {
                 // Recém criada, ou já avaliada: borda preta, não precisa chamar atenção
                 ColetaSituacao.SOLICITADA.ordinal, ColetaSituacao.AVALIADA.ordinal ->
                     ContextCompat.getDrawable(baseContext, R.drawable.background_border_inactive)
                 // Aceita, ou concluída: borda verde, chama atenção pois coleta prosseguirá
                 ColetaSituacao.ACEITA.ordinal, ColetaSituacao.COLETADA.ordinal ->
-                    ContextCompat.getDrawable(baseContext, R.drawable.background_border_success)
+                    if (isUsuarioPrestador && coleta.status == ColetaSituacao.COLETADA.ordinal) {
+                        // Para prestador, depois de COLETADA, já está finalizada, então não destaca
+                        ContextCompat.getDrawable(baseContext, R.drawable.background_border_inactive)
+                    }
+                    else {
+                        ContextCompat.getDrawable(baseContext, R.drawable.background_border_success)
+                    }
                 // Cancelada: borda vermelha, chama bastante atenção de que foi cancelada
                 ColetaSituacao.CANCELADA.ordinal ->
                     ContextCompat.getDrawable(baseContext, R.drawable.background_border_error)
@@ -149,6 +149,7 @@ class UsuarioHomeActivity : AppCompatActivity() {
     private fun fetchColetasUsuario(db: FirebaseFirestore) {
         db.collection("coletas")
             .whereEqualTo("usuarioId", auth.currentUser?.uid)
+            .orderBy("dataHora")
             .get()
             .addOnSuccessListener { result ->
                 for (doc in result) {
@@ -166,7 +167,9 @@ class UsuarioHomeActivity : AppCompatActivity() {
 
     private fun fetchColetasPrestador(db: FirebaseFirestore) {
         db.collection("coletas")
+            // TODO: trazer coletas sem prestador somente se não estiverem canceladas
             .whereIn("prestadorId", mutableListOf(null, "", auth.currentUser?.uid))
+            .orderBy("dataHora")
             .get()
             .addOnSuccessListener { result ->
                 for (doc in result) {

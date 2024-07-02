@@ -201,13 +201,12 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:id="@+id/btnDetalhesColetaAvaliar"
+        android:id="@+id/btnDetalhesColetaAtualizarSituacao"
         android:layout_width="409dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="72dp"
         android:backgroundTint="@color/design_default_color_secondary"
-        android:enabled="false"
-        android:text="Avaliar coleta"
+        android:text="Atualizar situação coleta (setado em runtime)"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
@@ -223,4 +222,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <RatingBar
+        android:id="@+id/rbDetalhesColetaAvaliacao"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="187dp"
+        android:progressTint="@android:color/holo_orange_light"
+        android:stepSize="1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>
