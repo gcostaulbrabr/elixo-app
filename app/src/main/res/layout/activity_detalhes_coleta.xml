@@ -205,6 +205,7 @@
         android:layout_width="409dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="72dp"
+        android:backgroundTint="@color/design_default_color_secondary"
         android:enabled="false"
         android:text="Avaliar coleta"
         app:layout_constraintBottom_toBottomOf="parent"

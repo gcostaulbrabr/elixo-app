@@ -4,7 +4,9 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.ImageView
 import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -17,12 +19,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
-import com.google.firebase.firestore.DocumentReference
-import com.google.firebase.firestore.Filter
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.firestore
-import com.google.firebase.firestore.toObject
 import java.time.ZonedDateTime
 
 class UsuarioHomeActivity : AppCompatActivity() {
@@ -30,9 +29,11 @@ class UsuarioHomeActivity : AppCompatActivity() {
     private var coletas: ArrayList<Coleta> = arrayListOf()
     private lateinit var recyclerView: RecyclerView
     private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
 
     companion object {
-        internal val CADASTRAR_COLETA = 123
+        internal const val CADASTRAR_COLETA = 0
+        internal const val ALTERAR_COLETA = 1
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,8 +47,12 @@ class UsuarioHomeActivity : AppCompatActivity() {
         }
 
         auth = Firebase.auth
+        db = Firebase.firestore
+        val usuarioNome = intent.getStringExtra("nomeUsuario")
         isUsuarioPrestador = intent.getBooleanExtra("isUsuarioPrestador", false)
 
+        findViewById<ImageView>(R.id.ivUsuarioHomePrestador).visibility = if (isUsuarioPrestador) View.VISIBLE else View.INVISIBLE
+        findViewById<TextView>(R.id.tvUsuarioHomeTitulo).text = "Olá $usuarioNome"
         findViewById<ProgressBar>(R.id.pbUsuarioHome).visibility = View.INVISIBLE
 
         setupRecyclerViewColetas()
@@ -55,9 +60,20 @@ class UsuarioHomeActivity : AppCompatActivity() {
         Log.d("UsuarioHomeActivity::onCreate()", "Consulta retornou ${coletas.size} coletas")
         //refreshColetas()
 
-        findViewById<FloatingActionButton>(R.id.fabNovaColeta).setOnClickListener {
-            val intent = Intent(this, NovaColetaActivity::class.java)
-            startActivityForResult(intent, CADASTRAR_COLETA)
+        findViewById<FloatingActionButton>(R.id.fabLogout).setOnClickListener {
+            auth.signOut()
+            onBackPressedDispatcher.onBackPressed()
+        }
+        val fabNovaColeta = findViewById<FloatingActionButton>(R.id.fabNovaColeta)
+        if (isUsuarioPrestador) {
+            // Prestador não adiciona solicitação de coleta
+            fabNovaColeta.visibility = View.INVISIBLE
+        }
+        else {
+            fabNovaColeta.setOnClickListener {
+                val intent = Intent(this, NovaColetaActivity::class.java)
+                startActivityForResult(intent, CADASTRAR_COLETA)
+            }
         }
     }
 
@@ -65,7 +81,7 @@ class UsuarioHomeActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
-            CADASTRAR_COLETA ->
+            CADASTRAR_COLETA, ALTERAR_COLETA ->
                 if (resultCode == RESULT_OK)
                     refreshColetas()
         }
@@ -83,7 +99,8 @@ class UsuarioHomeActivity : AppCompatActivity() {
         adapter.onItemClick = { coleta ->
             val intent = Intent(parentScope, DetalhesColetaActivity::class.java)
             intent.putExtra("coleta", coleta)
-            parentScope.startActivity(intent)
+            intent.putExtra("isPrestador", isUsuarioPrestador)
+            startActivityForResult(intent, ALTERAR_COLETA)
         }
         adapter.onBindItem = { rlItem, coleta ->
             // status:
@@ -93,9 +110,15 @@ class UsuarioHomeActivity : AppCompatActivity() {
             // 3=coleta cancelada
             // 4=coleta concluída e avaliada
             rlItem.background = when (coleta.status) {
-                0, 4 -> ContextCompat.getDrawable(baseContext, R.drawable.background_border_inactive)
-                1, 2 -> ContextCompat.getDrawable(baseContext, R.drawable.background_border_success)
-                3 -> ContextCompat.getDrawable(baseContext, R.drawable.background_border_error)
+                // Recém criada, ou já avaliada: borda preta, não precisa chamar atenção
+                ColetaSituacao.SOLICITADA.ordinal, ColetaSituacao.AVALIADA.ordinal ->
+                    ContextCompat.getDrawable(baseContext, R.drawable.background_border_inactive)
+                // Aceita, ou concluída: borda verde, chama atenção pois coleta prosseguirá
+                ColetaSituacao.ACEITA.ordinal, ColetaSituacao.COLETADA.ordinal ->
+                    ContextCompat.getDrawable(baseContext, R.drawable.background_border_success)
+                // Cancelada: borda vermelha, chama bastante atenção de que foi cancelada
+                ColetaSituacao.CANCELADA.ordinal ->
+                    ContextCompat.getDrawable(baseContext, R.drawable.background_border_error)
                 else -> null
             }
         }
@@ -106,7 +129,6 @@ class UsuarioHomeActivity : AppCompatActivity() {
         pb.visibility = View.VISIBLE
         //pb.setProgress(1, true)
         try {
-            val db = Firebase.firestore
             coletas.clear()
             if (isUsuarioPrestador) {
                 fetchColetasPrestador(db)
@@ -144,13 +166,7 @@ class UsuarioHomeActivity : AppCompatActivity() {
 
     private fun fetchColetasPrestador(db: FirebaseFirestore) {
         db.collection("coletas")
-            .where(
-                // Busca solicitações de coleta já atribuídas a si, e as sem prestador (disponíveis)
-                Filter.or(
-                    Filter.equalTo("prestadorId", auth.currentUser?.uid),
-                    Filter.equalTo("prestadorId", null)
-                )
-            )
+            .whereIn("prestadorId", mutableListOf(null, "", auth.currentUser?.uid))
             .get()
             .addOnSuccessListener { result ->
                 for (doc in result) {
@@ -168,7 +184,7 @@ class UsuarioHomeActivity : AppCompatActivity() {
 
     private fun querydocumentToColeta(doc: QueryDocumentSnapshot): Coleta {
         return Coleta(
-            doc["id"].toString(),
+            doc.id,
             doc["usuarioId"].toString(),
             doc["prestadorId"].toString(),
             doc["prestadorNome"].toString(),

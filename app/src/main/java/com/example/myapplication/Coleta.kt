@@ -4,6 +4,8 @@ import android.os.Parcel
 import android.os.Parcelable
 import java.time.ZonedDateTime
 
+enum class ColetaSituacao { SOLICITADA, ACEITA, COLETADA, AVALIADA, CANCELADA }
+
 data class Coleta(
     val id: String = "",
     val usuarioId: String = "",

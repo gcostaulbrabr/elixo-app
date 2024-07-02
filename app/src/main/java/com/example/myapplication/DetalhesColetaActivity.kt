@@ -1,6 +1,8 @@
 package com.example.myapplication
 
+import android.app.Activity
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -8,13 +10,22 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.firestore
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 class DetalhesColetaActivity : AppCompatActivity() {
+    private var coleta: Coleta? = null
+    private var isPrestador: Boolean = false
+    private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -25,29 +36,37 @@ class DetalhesColetaActivity : AppCompatActivity() {
             insets
         }
 
+        isPrestador = intent.getBooleanExtra("isPrestador", false)
+        coleta = intent.getParcelableExtra("coleta")
+
+        auth = Firebase.auth
+        db = Firebase.firestore
+
+        if (coleta != null) {
+            initLayoutFields(coleta!!)
+        }
+
         findViewById<Button>(R.id.btnDetalhesColetaCancelar).setOnClickListener {
-            // TODO: atualizar situação da coleta
-            Toast.makeText(this, "Coleta cancelada", Toast.LENGTH_LONG).show()
-            onBackPressedDispatcher.onBackPressed()
+            atualizarColeta(ColetaSituacao.CANCELADA)
         }
 
         findViewById<Button>(R.id.btnDetalhesColetaAvaliar).setOnClickListener {
-            // TODO: abrir modal para avaliar
-            // TODO: atualizar situação da coleta
-            onBackPressedDispatcher.onBackPressed()
+            if (!isPrestador) {
+                // TODO: modal avaliacao
+                var avaliacao = 5
+                atualizarColeta(ColetaSituacao.AVALIADA, avaliacao)
+            }
+            else {
+                atualizarColeta(ColetaSituacao.ACEITA)
+            }
         }
 
         findViewById<Button>(R.id.btnDetalhesColetaVoltar).setOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
-
-        val coleta = intent.getParcelableExtra<Coleta>("coleta")
-        if (coleta != null) {
-            initLayoutFields(coleta)
-        }
     }
 
-    private fun initLayoutFields(coleta: Coleta) {
+    private fun initLayoutFields(c: Coleta) {
         val tvDataHora = findViewById<TextView>(R.id.tvDetalhesColetaDataHora)
         val ivRelogioOff = findViewById<ImageView>(R.id.ivDetalhesColetaRelogioOff)
         val ivRelogioOn = findViewById<ImageView>(R.id.ivDetalhesColetaRelogioOn)
@@ -64,10 +83,13 @@ class DetalhesColetaActivity : AppCompatActivity() {
         val btnCancelar = findViewById<Button>(R.id.btnDetalhesColetaCancelar)
         val btnAvaliar = findViewById<Button>(R.id.btnDetalhesColetaAvaliar)
 
-        tvDataHora.text = DateTimeFormatter.ofPattern("'Coleta em' dd/MM/yyyy 'às' HH:mm", Locale.forLanguageTag("pt-BR")).format(coleta.dataHora)
-        tvNomePrestador.text = coleta.prestadorNome
-        tvEndereco.text = coleta.endereco
-        tvAparelho.text = coleta.aparelhoTipo
+        tvDataHora.text = DateTimeFormatter.ofPattern("'Coleta em' dd/MM/yyyy 'às' HH:mm", Locale.forLanguageTag("pt-BR")).format(c.dataHora)
+        tvNomePrestador.text = c.prestadorNome
+        tvEndereco.text = c.endereco
+        tvAparelho.text = c.aparelhoTipo
+
+        // Para o prestador, botão Avaliar será usado para o aceite da solicitação de coleta
+        btnAvaliar.text = if (isPrestador) "Aceitar" else "Avaliar"
 
         // Atualiza imagens e botões
         // Esconde e desabilita tudo; mostra e habilita só quando precisar, baseado no status
@@ -81,16 +103,21 @@ class DetalhesColetaActivity : AppCompatActivity() {
         tvNomePrestador.visibility = TextView.INVISIBLE
         btnCancelar.isEnabled = false
         btnAvaliar.isEnabled = false
-        when (coleta.status) {
-            0 -> {
+        when (c.status) {
+            ColetaSituacao.SOLICITADA.ordinal -> {
+                // Status 0:
                 ivRelogioOn.visibility = ImageView.VISIBLE
                 ivCaminhaoOff.visibility = ImageView.VISIBLE
                 ivCheckOff.visibility = ImageView.VISIBLE
                 pbStatus.progress = 15
                 tvStatus.text = "Status: coleta solicitada"
-                btnCancelar.isEnabled = true
+
+                // Prestador não pode cancelar coleta que não aceitou ainda
+                btnCancelar.isEnabled = !isPrestador
+                // Para o prestador, botão Avaliar será usado para o aceite da solicitação de coleta
+                btnAvaliar.isEnabled = isPrestador
             }
-            1 -> {
+            ColetaSituacao.ACEITA.ordinal -> {
                 ivRelogioOn.visibility = ImageView.VISIBLE
                 ivCaminhaoOn.visibility = ImageView.VISIBLE
                 ivCheckOff.visibility = ImageView.VISIBLE
@@ -98,49 +125,72 @@ class DetalhesColetaActivity : AppCompatActivity() {
                 tvStatus.text = "Status: coleta aceita"
                 ivFotoPrestador.visibility = ImageView.VISIBLE
                 tvNomePrestador.visibility = TextView.VISIBLE
-                btnCancelar.isEnabled = true
+
+                // Depois de aceita a coleta, somente o prestador pode cancelar
+                btnCancelar.isEnabled = isPrestador
             }
-            2 -> {
+            ColetaSituacao.COLETADA.ordinal -> {
                 ivRelogioOn.visibility = ImageView.VISIBLE
                 ivCaminhaoOn.visibility = ImageView.VISIBLE
                 ivCheckOn.visibility = ImageView.VISIBLE
                 pbStatus.progress = 100
-                tvStatus.text = "Status: coleta concluída, avalie!"
+                tvStatus.text = "Status: coleta realizada${if (!isPrestador) ", avalie" else "" }!"
                 ivFotoPrestador.visibility = ImageView.VISIBLE
                 tvNomePrestador.visibility = TextView.VISIBLE
-                btnAvaliar.isEnabled = true
+
+                btnAvaliar.isEnabled = !isPrestador
             }
-            3 -> {
+            ColetaSituacao.AVALIADA.ordinal -> {
+                ivRelogioOn.visibility = ImageView.VISIBLE
+                ivCaminhaoOn.visibility = ImageView.VISIBLE
+                ivCheckOn.visibility = ImageView.VISIBLE
+                pbStatus.progress = 100
+                val avaliacao = if (!isPrestador) ", nota ${c.avaliacao}/5" else ""
+                tvStatus.text = "Status: coleta concluída$avaliacao"
+                ivFotoPrestador.visibility = ImageView.VISIBLE
+                tvNomePrestador.visibility = TextView.VISIBLE
+            }
+            ColetaSituacao.CANCELADA.ordinal -> {
                 ivRelogioOff.visibility = ImageView.VISIBLE
                 ivCaminhaoOff.visibility = ImageView.VISIBLE
                 ivCheckOff.visibility = ImageView.VISIBLE
                 pbStatus.progress = 0
                 tvStatus.text = "Status: coleta cancelada"
             }
-            4 -> {
-                ivRelogioOn.visibility = ImageView.VISIBLE
-                ivCaminhaoOn.visibility = ImageView.VISIBLE
-                ivCheckOn.visibility = ImageView.VISIBLE
-                pbStatus.progress = 100
-                tvStatus.text = buildString {
-                    append("Status: coleta concluída, nota ")
-                    append(coleta.avaliacao.toString())
-                    append("/5")
-                }
-                ivFotoPrestador.visibility = ImageView.VISIBLE
-                tvNomePrestador.visibility = TextView.VISIBLE
-            }
             else -> {
                 pbStatus.visibility = ProgressBar.INVISIBLE
                 tvStatus.text = buildString {
                     append("STATUS INVÁLIDO! ")
-                    append(coleta.status.toString())
+                    append(c.status.toString())
                 }
             }
         }
-        // deixa o botão de cancelar transparente caso tenha sido desabilitado, suavizando a cor
+        // deixa os botões transparentes, suavizando a cor, caso tenham sido desabilitados
+        if (!btnAvaliar.isEnabled) {
+            btnAvaliar.alpha = 0.5f
+        }
         if (!btnCancelar.isEnabled) {
             btnCancelar.alpha = 0.5f
         }
+    }
+
+    private fun atualizarColeta(situacao: ColetaSituacao, avaliacao: Int = 0) {
+        val docRef = db.collection("coletas").document(coleta!!.id)
+        val updates = hashMapOf<String, Any>(
+            "status" to situacao.ordinal,
+            "avaliacao" to avaliacao
+        )
+
+        docRef.update(updates)
+            .addOnSuccessListener { _ ->
+                Log.d("DetalhesColetaActivity", "Atualizada coleta ${coleta!!.id} para situação $situacao e avaliacao $avaliacao")
+                Toast.makeText(baseContext, "Situação da coleta atualizada para ${situacao}!", Toast.LENGTH_SHORT,).show()
+                setResult(Activity.RESULT_OK)
+                finish()
+            }
+            .addOnFailureListener { e ->
+                Log.e("NovaColetaActivity", "Atualização da coleta ${coleta!!.id} para situação $situacao e avaliacao $avaliacao falhou", e)
+                Toast.makeText(baseContext, "Falha ao atualizar coleta: ${e.message}", Toast.LENGTH_LONG,).show()
+            }
     }
 }
